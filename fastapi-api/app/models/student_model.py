@@ -1,70 +1,67 @@
 
+from app.core.db import connection
 from app.schemas.student_schema import StudentResponse
 
 
-# 模拟数据库
-students = [
-    StudentResponse(
-        id=1,
-        name="张三",
-        age=20,
-        major="计算机科学"
-    ),
-    StudentResponse(
-        id=2,
-        name="李四",
-        age=21,
-        major="软件工程"
+def _row_to_student(row) -> StudentResponse:
+    return StudentResponse(
+        id=row["id"],
+        name=row["name"],
+        age=row["age"],
+        major=row["major"]
     )
-]
-
-next_id = 3
 
 
 def find_all():
-    return students
+    rows = connection.execute("SELECT * FROM students").fetchall()
+    return [_row_to_student(row) for row in rows]
 
 
 def find_by_id(student_id: int):
-    for student in students:
-        if student.id == student_id:
-            return student
+    row = connection.execute(
+        "SELECT * FROM students WHERE id = ?",
+        (student_id,)
+    ).fetchone()
 
-    return None
+    if row is None:
+        return None
+
+    return _row_to_student(row)
 
 
 def create(data: dict):
-    global next_id
-
-    student = StudentResponse(
-        id=next_id,
-        **data
+    cursor = connection.execute(
+        "INSERT INTO students (name, age, major) VALUES (?, ?, ?)",
+        (data["name"], data["age"], data["major"])
     )
+    connection.commit()
 
-    next_id += 1
-    students.append(student)
-
-    return student
+    return find_by_id(cursor.lastrowid)
 
 
 def update(student_id: int, data: dict):
-    for index, student in enumerate(students):
-        if student.id == student_id:
-            updated_student = StudentResponse(
-                id=student_id,
-                **data
-            )
+    cursor = connection.execute(
+        "UPDATE students SET name = ?, age = ?, major = ? WHERE id = ?",
+        (data["name"], data["age"], data["major"], student_id)
+    )
+    connection.commit()
 
-            students[index] = updated_student
-            return updated_student
+    if cursor.rowcount == 0:
+        return None
 
-    return None
+    return find_by_id(student_id)
 
 
 def remove(student_id: int):
-    for index, student in enumerate(students):
-        if student.id == student_id:
-            students.pop(index)
-            return True
+    student = find_by_id(student_id)
 
-    return False
+    if student is None:
+        return False
+
+    connection.execute(
+        "DELETE FROM students WHERE id = ?",
+        (student_id,)
+    )
+    connection.commit()
+
+    return True
