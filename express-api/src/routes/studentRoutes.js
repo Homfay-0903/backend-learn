@@ -1,5 +1,7 @@
 const express = require("express")
 const studentController = require("../controllers/studentController")
+const validate = require("../middlewares/validate")
+const studentSchema = require("../schemas/studentSchema")
 
 const router = express.Router()
 
@@ -10,10 +12,10 @@ router.get("/", studentController.getAllStudents)
 router.get("/:id", studentController.getStudentById)
 
 // 新增学生
-router.post("/", studentController.createStudent)
+router.post("/", validate(studentSchema), studentController.createStudent)
 
 // 修改学生
-router.put("/:id", studentController.updateStudent)
+router.put("/:id", validate(studentSchema), studentController.updateStudent)
 
 // 删除学生
 router.delete("/:id", studentController.deleteStudent)

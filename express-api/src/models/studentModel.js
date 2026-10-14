@@ -1,68 +1,53 @@
-let students = [
-    {
-        id: 1,
-        name: "张三",
-        age: 20,
-        major: "计算机科学"
-    },
-    {
-        id: 2,
-        name: "李四",
-        age: 21,
-        major: "软件工程"
-    }
-]
-
-let nextId = 3
+const db = require('../config/db')
 
 //获取全部学生
 function getAllStudents() {
-    return students
+    return db.prepare('SELECT * FROM students').all()
 }
 
 //根据id获取学生
 function getStudentById(id) {
-    return students.find(student => student.id === id)
+    return db.prepare('SELECT * FROM students WHERE id = ?').get(id)
 }
 
 //添加学生
 function addStudent(data) {
-    const student = {
-        id: nextId++,
-        ...data
-    }
+    const { name, age, major } = data
 
-    students.push(student)
-    return student
+    const insert = db.prepare(
+        'INSERT INTO students (name, age, major) VALUES (?, ?, ?)'
+    )
+    const result = insert.run(name, age, major)
+
+    return getStudentById(Number(result.lastInsertRowid))
 }
 
 //更新学生
 function updateStudent(id, data) {
-    const index = students.findIndex(student => student.id === id)
+    const { name, age, major } = data
 
-    if (index === -1) {
+    const update = db.prepare(
+        'UPDATE students SET name = ?, age = ?, major = ? WHERE id = ?'
+    )
+    const result = update.run(name, age, major, id)
+
+    if (result.changes === 0) {
         return null
     }
 
-    students[index] = {
-        ...students[index],
-        ...data
-    }
-
-    return students[index]
+    return getStudentById(id)
 }
 
 //删除学生
 function deleteStudent(id) {
-    const index = students.findIndex(student => student.id === id)
+    const student = getStudentById(id)
 
-    if (index === -1) {
+    if (!student) {
         return null
     }
 
-    const deletedStudent = students[index]
-    students.splice(index, 1)
-    return deletedStudent
+    db.prepare('DELETE FROM students WHERE id = ?').run(id)
+    return student
 }
 
 module.exports = {
