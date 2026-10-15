@@ -1,26 +1,36 @@
+import os
 import sqlite3
 from pathlib import Path
 
-# 数据库文件生成在项目根目录下，文件不存在时会自动创建
-DB_PATH = Path(__file__).resolve().parent.parent.parent / "students.db"
+# 测试环境下使用内存数据库，不影响本地真实的 students.db 文件
+IS_TEST_ENV = os.environ.get("ENV") == "test"
+DB_PATH = (
+    ":memory:"
+    if IS_TEST_ENV
+    else Path(__file__).resolve().parent.parent.parent / "students.db"
+)
 
 connection = sqlite3.connect(DB_PATH, check_same_thread=False)
 connection.row_factory = sqlite3.Row
 
-# 建表语句：如果表已存在就跳过，保证重复启动服务不会报错
-connection.execute("""
-    CREATE TABLE IF NOT EXISTS students (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        age INTEGER NOT NULL,
-        major TEXT NOT NULL
-    )
-""")
 
-# 首次运行时表是空的，插入两条初始数据
-count = connection.execute("SELECT COUNT(*) FROM students").fetchone()[0]
+def create_table():
+    # 建表语句：如果表已存在就跳过，保证重复启动服务不会报错
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS students (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            major TEXT NOT NULL
+        )
+    """)
 
-if count == 0:
+
+def seed_defaults():
+    # 清空并重新插入两条初始数据，供测试在每个用例开始前重置数据状态
+    connection.execute("DROP TABLE IF EXISTS students")
+    create_table()
+
     connection.executemany(
         "INSERT INTO students (name, age, major) VALUES (?, ?, ?)",
         [
@@ -29,3 +39,12 @@ if count == 0:
         ]
     )
     connection.commit()
+
+
+create_table()
+
+# 首次运行时表是空的，插入两条初始数据
+count = connection.execute("SELECT COUNT(*) FROM students").fetchone()[0]
+
+if count == 0:
+    seed_defaults()
