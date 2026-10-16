@@ -1,8 +1,24 @@
 const db = require('../config/db')
 
-//获取全部学生
-function getAllStudents() {
-    return db.prepare('SELECT * FROM students').all()
+//根据筛选条件查询学生列表（分页 + 排序）
+function getAllStudents({ page, pageSize, major, sortBy, order }) {
+    const whereClause = major ? 'WHERE major = ?' : ''
+    const whereParams = major ? [major] : []
+    const offset = (page - 1) * pageSize
+
+    const rows = db.prepare(`
+        SELECT * FROM students
+        ${whereClause}
+        ORDER BY ${sortBy} ${order}
+        LIMIT ? OFFSET ?
+    `).all(...whereParams, pageSize, offset)
+
+    const { total } = db.prepare(`
+        SELECT COUNT(*) AS total FROM students
+        ${whereClause}
+    `).get(...whereParams)
+
+    return { rows, total }
 }
 
 //根据id获取学生

@@ -2,11 +2,12 @@ const express = require("express")
 const studentController = require("../controllers/studentController")
 const validate = require("../middlewares/validate")
 const studentSchema = require("../schemas/studentSchema")
+const studentQuerySchema = require("../schemas/studentQuerySchema")
 
 const router = express.Router()
 
-// 查询全部学生
-router.get("/", studentController.getAllStudents)
+// 查询学生列表（支持分页 / 过滤 / 排序）
+router.get("/", validate(studentQuerySchema, "query"), studentController.getAllStudents)
 
 // 查询单个学生
 router.get("/:id", studentController.getStudentById)

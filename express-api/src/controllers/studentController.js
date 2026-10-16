@@ -14,11 +14,12 @@ function parseStudentId(value) {
 
 // GET /api/students
 function getAllStudents(req, res) {
-    const students = studentService.getAllStudents()
+    const result = studentService.getAllStudents(req.validatedQuery)
 
     res.status(200).json({
         success: true,
-        data: students
+        data: result.data,
+        pagination: result.pagination
     })
 }
 

@@ -10,13 +10,49 @@ beforeEach(() => {
 })
 
 describe('GET /api/students', () => {
-    test('应该返回全部学生列表', async () => {
+    test('应该返回全部学生列表及分页信息', async () => {
         const res = await request(app).get('/api/students')
 
         expect(res.status).toBe(200)
         expect(res.body.success).toBe(true)
         expect(res.body.data).toHaveLength(2)
         expect(res.body.data[0].name).toBe('张三')
+        expect(res.body.pagination).toEqual({
+            page: 1,
+            pageSize: 10,
+            total: 2,
+            totalPages: 1
+        })
+    })
+
+    test('pageSize 应该限制返回条数', async () => {
+        const res = await request(app).get('/api/students?pageSize=1')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(1)
+        expect(res.body.pagination.totalPages).toBe(2)
+    })
+
+    test('按 major 过滤应该只返回匹配的学生', async () => {
+        const res = await request(app).get('/api/students?major=软件工程')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data).toHaveLength(1)
+        expect(res.body.data[0].name).toBe('李四')
+    })
+
+    test('按 age 降序排序应该生效', async () => {
+        const res = await request(app).get('/api/students?sortBy=age&order=desc')
+
+        expect(res.status).toBe(200)
+        expect(res.body.data[0].name).toBe('李四')
+        expect(res.body.data[1].name).toBe('张三')
+    })
+
+    test('sortBy 传入白名单外的字段应该被拦截，返回 400', async () => {
+        const res = await request(app).get('/api/students?sortBy=password')
+
+        expect(res.status).toBe(400)
     })
 })
 
