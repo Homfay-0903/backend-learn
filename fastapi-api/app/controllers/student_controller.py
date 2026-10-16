@@ -3,12 +3,13 @@ from app.services import student_service
 from app.schemas.student_schema import StudentCreate
 
 
-def get_all_students():
-    students = student_service.get_all_students()
+def get_all_students(query):
+    result = student_service.get_all_students(query)
 
     return {
         "success": True,
-        "data": students
+        "data": result["data"],
+        "pagination": result["pagination"]
     }
 
 

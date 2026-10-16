@@ -1,11 +1,28 @@
+import math
 
 from app.models import student_model
 from app.core.exceptions import ApiError
 from app.schemas.student_schema import StudentCreate
 
 
-def get_all_students():
-    return student_model.find_all()
+def get_all_students(query):
+    students, total = student_model.find_all(
+        page=query.page,
+        page_size=query.page_size,
+        major=query.major,
+        sort_by=query.sort_by,
+        order=query.order
+    )
+
+    return {
+        "data": students,
+        "pagination": {
+            "page": query.page,
+            "pageSize": query.page_size,
+            "total": total,
+            "totalPages": math.ceil(total / query.page_size)
+        }
+    }
 
 
 def get_student_by_id(student_id: int):

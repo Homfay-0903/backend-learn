@@ -5,6 +5,42 @@ def test_get_all_students(client):
     assert res.json()["success"] is True
     assert len(res.json()["data"]) == 2
     assert res.json()["data"][0]["name"] == "张三"
+    assert res.json()["pagination"] == {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2,
+        "totalPages": 1
+    }
+
+
+def test_get_all_students_page_size_limits_results(client):
+    res = client.get("/api/students?pageSize=1")
+
+    assert res.status_code == 200
+    assert len(res.json()["data"]) == 1
+    assert res.json()["pagination"]["totalPages"] == 2
+
+
+def test_get_all_students_filter_by_major(client):
+    res = client.get("/api/students?major=软件工程")
+
+    assert res.status_code == 200
+    assert len(res.json()["data"]) == 1
+    assert res.json()["data"][0]["name"] == "李四"
+
+
+def test_get_all_students_sort_by_age_desc(client):
+    res = client.get("/api/students?sortBy=age&order=desc")
+
+    assert res.status_code == 200
+    assert res.json()["data"][0]["name"] == "李四"
+    assert res.json()["data"][1]["name"] == "张三"
+
+
+def test_get_all_students_invalid_sort_by_rejected(client):
+    res = client.get("/api/students?sortBy=password")
+
+    assert res.status_code == 422
 
 
 def test_get_student_by_id_found(client):

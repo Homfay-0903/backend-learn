@@ -1,7 +1,7 @@
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.controllers import student_controller
-from app.schemas.student_schema import StudentCreate
+from app.schemas.student_schema import StudentCreate, StudentQuery
 
 router = APIRouter(
     prefix="/api/students",
@@ -9,10 +9,10 @@ router = APIRouter(
 )
 
 
-# 查询全部学生
+# 查询学生列表（支持分页 / 过滤 / 排序）
 @router.get("")
-def get_all_students():
-    return student_controller.get_all_students()
+def get_all_students(query: StudentQuery = Depends()):
+    return student_controller.get_all_students(query)
 
 
 # 查询单个学生
