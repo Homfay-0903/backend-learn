@@ -1,11 +1,11 @@
 const { DatabaseSync } = require('node:sqlite')
 const path = require('node:path')
+const env = require('./env')
 
-// 测试环境下使用内存数据库，不影响本地真实的 students.db 文件
-const isTestEnv = process.env.NODE_ENV === 'test'
-const dbPath = isTestEnv
+// 测试环境下使用内存数据库，不影响本地真实的数据库文件
+const dbPath = env.nodeEnv === 'test'
     ? ':memory:'
-    : path.join(__dirname, '../../students.db')
+    : path.join(__dirname, '../../', env.dbFileName)
 
 const db = new DatabaseSync(dbPath)
 
