@@ -1,13 +1,13 @@
-import os
 import sqlite3
 from pathlib import Path
 
-# 测试环境下使用内存数据库，不影响本地真实的 students.db 文件
-IS_TEST_ENV = os.environ.get("ENV") == "test"
+from app.core.config import ENV, DB_FILE_NAME
+
+# 测试环境下使用内存数据库，不影响本地真实的数据库文件
 DB_PATH = (
     ":memory:"
-    if IS_TEST_ENV
-    else Path(__file__).resolve().parent.parent.parent / "students.db"
+    if ENV == "test"
+    else Path(__file__).resolve().parent.parent.parent / DB_FILE_NAME
 )
 
 connection = sqlite3.connect(DB_PATH, check_same_thread=False)
