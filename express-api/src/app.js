@@ -2,13 +2,14 @@ const express = require("express")
 
 const studentRoutes = require("./routes/studentRoutes")
 const errorHandler = require("./middlewares/errorHandler")
+const apiKeyAuth = require("./middlewares/apiKeyAuth")
 
 const app = express()
 
 // 解析 JSON 请求体
 app.use(express.json())
 
-// 健康检查接口
+// 健康检查接口：不需要认证，方便监控系统探活
 app.get("/health", (req, res) => {
     res.json({
         success: true,
@@ -16,8 +17,8 @@ app.get("/health", (req, res) => {
     })
 })
 
-// 注册学生路由
-app.use("/api/students", studentRoutes)
+// 注册学生路由（整个模块统一要求 API Key 认证）
+app.use("/api/students", apiKeyAuth, studentRoutes)
 
 // 处理不存在的路由
 app.use((req, res) => {

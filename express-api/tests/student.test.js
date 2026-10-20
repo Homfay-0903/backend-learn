@@ -1,17 +1,62 @@
 process.env.NODE_ENV = 'test'
+process.env.API_KEY = 'test-api-key'
 
 const request = require('supertest')
 const app = require('../src/app')
 const db = require('../src/config/db')
+
+const TEST_API_KEY = process.env.API_KEY
+
+// 封装一层，每次发请求自动带上测试用的 API Key，避免每条测试都重复写 .set(...)
+function authedRequest() {
+    const agent = request(app)
+    const methods = ['get', 'post', 'put', 'delete']
+
+    const wrapped = {}
+    methods.forEach((method) => {
+        wrapped[method] = (url) => agent[method](url).set('x-api-key', TEST_API_KEY)
+    })
+
+    return wrapped
+}
 
 // 每个测试用例开始前，把数据库重置成固定的初始状态
 beforeEach(() => {
     db.seedDefaults()
 })
 
+describe('API Key 认证', () => {
+    test('不带 x-api-key 请求头应该返回 401', async () => {
+        const res = await request(app).get('/api/students')
+
+        expect(res.status).toBe(401)
+        expect(res.body.success).toBe(false)
+    })
+
+    test('携带错误的 API Key 应该返回 401', async () => {
+        const res = await request(app)
+            .get('/api/students')
+            .set('x-api-key', 'wrong-key')
+
+        expect(res.status).toBe(401)
+    })
+
+    test('携带正确的 API Key 应该放行', async () => {
+        const res = await authedRequest().get('/api/students')
+
+        expect(res.status).toBe(200)
+    })
+
+    test('健康检查接口不需要 API Key', async () => {
+        const res = await request(app).get('/health')
+
+        expect(res.status).toBe(200)
+    })
+})
+
 describe('GET /api/students', () => {
     test('应该返回全部学生列表及分页信息', async () => {
-        const res = await request(app).get('/api/students')
+        const res = await authedRequest().get('/api/students')
 
         expect(res.status).toBe(200)
         expect(res.body.success).toBe(true)
@@ -26,7 +71,7 @@ describe('GET /api/students', () => {
     })
 
     test('pageSize 应该限制返回条数', async () => {
-        const res = await request(app).get('/api/students?pageSize=1')
+        const res = await authedRequest().get('/api/students?pageSize=1')
 
         expect(res.status).toBe(200)
         expect(res.body.data).toHaveLength(1)
@@ -34,7 +79,7 @@ describe('GET /api/students', () => {
     })
 
     test('按 major 过滤应该只返回匹配的学生', async () => {
-        const res = await request(app).get('/api/students?major=软件工程')
+        const res = await authedRequest().get('/api/students?major=软件工程')
 
         expect(res.status).toBe(200)
         expect(res.body.data).toHaveLength(1)
@@ -42,7 +87,7 @@ describe('GET /api/students', () => {
     })
 
     test('按 age 降序排序应该生效', async () => {
-        const res = await request(app).get('/api/students?sortBy=age&order=desc')
+        const res = await authedRequest().get('/api/students?sortBy=age&order=desc')
 
         expect(res.status).toBe(200)
         expect(res.body.data[0].name).toBe('李四')
@@ -50,7 +95,7 @@ describe('GET /api/students', () => {
     })
 
     test('sortBy 传入白名单外的字段应该被拦截，返回 400', async () => {
-        const res = await request(app).get('/api/students?sortBy=password')
+        const res = await authedRequest().get('/api/students?sortBy=password')
 
         expect(res.status).toBe(400)
     })
@@ -58,14 +103,14 @@ describe('GET /api/students', () => {
 
 describe('GET /api/students/:id', () => {
     test('查询存在的学生应该返回该学生数据', async () => {
-        const res = await request(app).get('/api/students/1')
+        const res = await authedRequest().get('/api/students/1')
 
         expect(res.status).toBe(200)
         expect(res.body.data.name).toBe('张三')
     })
 
     test('查询不存在的学生应该返回 404', async () => {
-        const res = await request(app).get('/api/students/999')
+        const res = await authedRequest().get('/api/students/999')
 
         expect(res.status).toBe(404)
         expect(res.body.success).toBe(false)
@@ -74,7 +119,7 @@ describe('GET /api/students/:id', () => {
 
 describe('POST /api/students', () => {
     test('提交合法数据应该创建成功', async () => {
-        const res = await request(app)
+        const res = await authedRequest()
             .post('/api/students')
             .send({ name: '王五', age: 22, major: '物理' })
 
@@ -84,7 +129,7 @@ describe('POST /api/students', () => {
     })
 
     test('年龄超出范围应该被拦截，返回 400', async () => {
-        const res = await request(app)
+        const res = await authedRequest()
             .post('/api/students')
             .send({ name: '王五', age: 200, major: '物理' })
 
@@ -93,7 +138,7 @@ describe('POST /api/students', () => {
     })
 
     test('姓名类型错误应该被拦截，返回 400', async () => {
-        const res = await request(app)
+        const res = await authedRequest()
             .post('/api/students')
             .send({ name: 123, age: 20, major: '物理' })
 
@@ -101,7 +146,7 @@ describe('POST /api/students', () => {
     })
 
     test('携带 schema 未定义的多余字段应该被拦截', async () => {
-        const res = await request(app)
+        const res = await authedRequest()
             .post('/api/students')
             .send({ name: '王五', age: 20, major: '物理', password: '123456' })
 
@@ -111,7 +156,7 @@ describe('POST /api/students', () => {
 
 describe('PUT /api/students/:id', () => {
     test('更新存在的学生应该成功', async () => {
-        const res = await request(app)
+        const res = await authedRequest()
             .put('/api/students/1')
             .send({ name: '张三三', age: 21, major: '计算机科学' })
 
@@ -120,7 +165,7 @@ describe('PUT /api/students/:id', () => {
     })
 
     test('更新不存在的学生应该返回 404', async () => {
-        const res = await request(app)
+        const res = await authedRequest()
             .put('/api/students/999')
             .send({ name: '张三三', age: 21, major: '计算机科学' })
 
@@ -130,15 +175,15 @@ describe('PUT /api/students/:id', () => {
 
 describe('DELETE /api/students/:id', () => {
     test('删除存在的学生应该成功，再查询应该返回 404', async () => {
-        const deleteRes = await request(app).delete('/api/students/1')
+        const deleteRes = await authedRequest().delete('/api/students/1')
         expect(deleteRes.status).toBe(200)
 
-        const getRes = await request(app).get('/api/students/1')
+        const getRes = await authedRequest().get('/api/students/1')
         expect(getRes.status).toBe(404)
     })
 
     test('删除不存在的学生应该返回 404', async () => {
-        const res = await request(app).delete('/api/students/999')
+        const res = await authedRequest().delete('/api/students/999')
 
         expect(res.status).toBe(404)
     })

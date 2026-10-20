@@ -4,5 +4,6 @@ require('dotenv').config()
 module.exports = {
     port: process.env.PORT || 3000,
     nodeEnv: process.env.NODE_ENV || 'development',
-    dbFileName: process.env.DB_FILE_NAME || 'students.db'
+    dbFileName: process.env.DB_FILE_NAME || 'students.db',
+    apiKey: process.env.API_KEY
 }
