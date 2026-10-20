@@ -2,10 +2,12 @@
 from fastapi import APIRouter, Depends
 from app.controllers import student_controller
 from app.schemas.student_schema import StudentCreate, StudentQuery
+from app.core.security import verify_api_key
 
 router = APIRouter(
     prefix="/api/students",
-    tags=["Students"]
+    tags=["Students"],
+    dependencies=[Depends(verify_api_key)]
 )
 
 

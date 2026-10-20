@@ -1,3 +1,31 @@
+def test_missing_api_key_rejected(unauthenticated_client):
+    res = unauthenticated_client.get("/api/students")
+
+    assert res.status_code == 401
+    assert res.json()["success"] is False
+
+
+def test_wrong_api_key_rejected(unauthenticated_client):
+    res = unauthenticated_client.get(
+        "/api/students",
+        headers={"x-api-key": "wrong-key"}
+    )
+
+    assert res.status_code == 401
+
+
+def test_correct_api_key_allowed(client):
+    res = client.get("/api/students")
+
+    assert res.status_code == 200
+
+
+def test_health_check_does_not_require_api_key(unauthenticated_client):
+    res = unauthenticated_client.get("/health")
+
+    assert res.status_code == 200
+
+
 def test_get_all_students(client):
     res = client.get("/api/students")
 
