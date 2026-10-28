@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 
 from app.routers.student_router import router as student_router
+from app.routers.auth_router import router as auth_router
 from app.core.exceptions import ApiError, api_error_handler
 
 
@@ -22,6 +23,9 @@ app.add_exception_handler(
 
 # 注册学生路由
 app.include_router(student_router)
+
+# 注册认证相关的公开路由（注册、登录）
+app.include_router(auth_router)
 
 
 # 健康检查接口

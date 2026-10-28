@@ -24,11 +24,19 @@ def create_table():
             major TEXT NOT NULL
         )
     """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL
+        )
+    """)
 
 
 def seed_defaults():
     # 清空并重新插入两条初始数据，供测试在每个用例开始前重置数据状态
     connection.execute("DROP TABLE IF EXISTS students")
+    connection.execute("DROP TABLE IF EXISTS users")
     create_table()
 
     connection.executemany(

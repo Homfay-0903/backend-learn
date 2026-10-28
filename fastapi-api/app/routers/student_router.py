@@ -2,12 +2,13 @@
 from fastapi import APIRouter, Depends
 from app.controllers import student_controller
 from app.schemas.student_schema import StudentCreate, StudentQuery
-from app.core.security import verify_api_key
+from app.core.security import verify_jwt
 
 router = APIRouter(
     prefix="/api/students",
     tags=["Students"],
-    dependencies=[Depends(verify_api_key)]
+    # 整个路由模块统一要求 JWT 认证（取代之前的 API Key）
+    dependencies=[Depends(verify_jwt)]
 )
 
 
