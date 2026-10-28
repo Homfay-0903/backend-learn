@@ -1,53 +1,65 @@
 process.env.NODE_ENV = 'test'
-process.env.API_KEY = 'test-api-key'
+process.env.JWT_SECRET = 'test-jwt-secret'
 
 const request = require('supertest')
 const app = require('../src/app')
 const db = require('../src/config/db')
 
-const TEST_API_KEY = process.env.API_KEY
+// 每个测试用例开始前，把数据库重置成固定的初始状态，
+// 再注册并登录一个测试用户，拿到后续业务接口要用的 token
+let token = ''
 
-// 封装一层，每次发请求自动带上测试用的 API Key，避免每条测试都重复写 .set(...)
+beforeEach(async () => {
+    db.seedDefaults()
+
+    await request(app)
+        .post('/api/auth/register')
+        .send({ username: 'testuser', password: 'test123456' })
+
+    const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ username: 'testuser', password: 'test123456' })
+
+    token = loginRes.body.data.token
+})
+
+// 封装一层，每次发请求自动带上 Authorization: Bearer <token>，
+// 避免每条测试都重复写 .set(...)
 function authedRequest() {
     const agent = request(app)
     const methods = ['get', 'post', 'put', 'delete']
 
     const wrapped = {}
     methods.forEach((method) => {
-        wrapped[method] = (url) => agent[method](url).set('x-api-key', TEST_API_KEY)
+        wrapped[method] = (url) => agent[method](url).set('Authorization', `Bearer ${token}`)
     })
 
     return wrapped
 }
 
-// 每个测试用例开始前，把数据库重置成固定的初始状态
-beforeEach(() => {
-    db.seedDefaults()
-})
-
-describe('API Key 认证', () => {
-    test('不带 x-api-key 请求头应该返回 401', async () => {
+describe('JWT 认证', () => {
+    test('不带 Authorization 请求头应该返回 401', async () => {
         const res = await request(app).get('/api/students')
 
         expect(res.status).toBe(401)
         expect(res.body.success).toBe(false)
     })
 
-    test('携带错误的 API Key 应该返回 401', async () => {
+    test('携带格式错误的 Authorization 头应该返回 401', async () => {
         const res = await request(app)
             .get('/api/students')
-            .set('x-api-key', 'wrong-key')
+            .set('Authorization', 'Bearer not-a-real-token')
 
         expect(res.status).toBe(401)
     })
 
-    test('携带正确的 API Key 应该放行', async () => {
+    test('携带正确的 token 应该放行', async () => {
         const res = await authedRequest().get('/api/students')
 
         expect(res.status).toBe(200)
     })
 
-    test('健康检查接口不需要 API Key', async () => {
+    test('健康检查接口不需要认证', async () => {
         const res = await request(app).get('/health')
 
         expect(res.status).toBe(200)

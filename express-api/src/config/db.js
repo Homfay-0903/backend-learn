@@ -17,13 +17,20 @@ function createTable() {
             name TEXT NOT NULL,
             age INTEGER NOT NULL,
             major TEXT NOT NULL
-        )
+        );
+
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL
+        );
     `)
 }
 
-// 清空并重新插入两条初始数据，供测试在每个用例开始前重置数据状态
+// 清空并重新插入初始数据，供测试在每个用例开始前重置数据状态
 function seedDefaults() {
     db.exec('DROP TABLE IF EXISTS students')
+    db.exec('DROP TABLE IF EXISTS users')
     createTable()
 
     const insert = db.prepare(

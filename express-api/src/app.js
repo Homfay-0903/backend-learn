@@ -1,8 +1,9 @@
 const express = require("express")
 
 const studentRoutes = require("./routes/studentRoutes")
+const userRoutes = require("./routes/userRoutes")
 const errorHandler = require("./middlewares/errorHandler")
-const apiKeyAuth = require("./middlewares/apiKeyAuth")
+const jwtAuth = require("./middlewares/jwtAuth")
 
 const app = express()
 
@@ -17,8 +18,11 @@ app.get("/health", (req, res) => {
     })
 })
 
-// 注册学生路由（整个模块统一要求 API Key 认证）
-app.use("/api/students", apiKeyAuth, studentRoutes)
+// 注册认证相关的公开接口（注册、登录）
+app.use("/api/auth", userRoutes)
+
+// 学生接口统一要求 JWT 认证（取代之前的 API Key）
+app.use("/api/students", jwtAuth, studentRoutes)
 
 // 处理不存在的路由
 app.use((req, res) => {
