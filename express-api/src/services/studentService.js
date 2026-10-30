@@ -28,6 +28,17 @@ function getStudentById(id) {
     return student
 }
 
+// 根据id查询学生（附带课程列表）
+function getStudentWithCourses(id) {
+    const student = studentModel.getStudentWithCourses(id)
+
+    if (!student) {
+        throw new ApiError(404, '学生不存在')
+    }
+
+    return student
+}
+
 // 添加学生
 function createStudent(studentData) {
     return studentModel.addStudent(studentData)
@@ -58,6 +69,7 @@ function deleteStudent(id) {
 module.exports = {
     getAllStudents,
     getStudentById,
+    getStudentWithCourses,
     createStudent,
     updateStudent,
     deleteStudent

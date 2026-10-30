@@ -26,6 +26,37 @@ function getStudentById(id) {
     return db.prepare('SELECT * FROM students WHERE id = ?').get(id)
 }
 
+// 查询学生详情（附带课程列表）。
+// LEFT JOIN：即使学生没有课程也要返回学生本身（NULL 填充）；
+// 如果用 INNER JOIN，没有课程的学生会被整个过滤掉。
+// 一行学生 × N 门课会膨胀成 N 行，所以自己按 id 聚合成嵌套结构
+function getStudentWithCourses(id) {
+    const rows = db.prepare(`
+        SELECT s.id AS student_id, s.name, s.age, s.major,
+               c.id AS course_id, c.name AS course_name
+        FROM students s
+        LEFT JOIN courses c ON c.student_id = s.id
+        WHERE s.id = ?
+        ORDER BY c.id
+    `).all(id)
+
+    if (rows.length === 0) {
+        return null
+    }
+
+    const first = rows[0]
+
+    return {
+        id: first.student_id,
+        name: first.name,
+        age: first.age,
+        major: first.major,
+        courses: rows
+            .filter((row) => row.course_id !== null)
+            .map((row) => ({ id: row.course_id, name: row.course_name }))
+    }
+}
+
 //添加学生
 function addStudent(data) {
     const { name, age, major } = data
@@ -69,6 +100,7 @@ function deleteStudent(id) {
 module.exports = {
     getAllStudents,
     getStudentById,
+    getStudentWithCourses,
     addStudent,
     updateStudent,
     deleteStudent

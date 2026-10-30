@@ -23,10 +23,10 @@ function getAllStudents(req, res) {
     })
 }
 
-// GET /api/students/:id
+// GET /api/students/:id（返回学生详情，附带课程列表）
 function getStudentById(req, res) {
     const id = parseStudentId(req.params.id)
-    const student = studentService.getStudentById(id)
+    const student = studentService.getStudentWithCourses(id)
 
     res.status(200).json({
         success: true,

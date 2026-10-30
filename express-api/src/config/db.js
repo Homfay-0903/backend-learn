@@ -9,6 +9,10 @@ const dbPath = env.nodeEnv === 'test'
 
 const db = new DatabaseSync(dbPath)
 
+// SQLite 默认不启用外键约束，每个连接都要单独开启
+// （这是 SQLite 的历史遗留设计，其他数据库如 MySQL/PostgreSQL 默认就是开启的）
+db.exec('PRAGMA foreign_keys = ON')
+
 function createTable() {
     // 建表语句：如果表已存在就跳过，保证重复启动服务不会报错
     db.exec(`
@@ -24,11 +28,19 @@ function createTable() {
             username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS courses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            -- 外键：指向学生的 id；学生被删除时，其课程记录一并删除（级联删除）
+            student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE
+        );
     `)
 }
 
 // 清空并重新插入初始数据，供测试在每个用例开始前重置数据状态
 function seedDefaults() {
+    db.exec('DROP TABLE IF EXISTS courses')
     db.exec('DROP TABLE IF EXISTS students')
     db.exec('DROP TABLE IF EXISTS users')
     createTable()
@@ -39,6 +51,15 @@ function seedDefaults() {
 
     insert.run('张三', 20, '计算机科学')
     insert.run('李四', 21, '软件工程')
+
+    // 给两个学生各预置几门课程，方便手动测试关联查询
+    const insertCourse = db.prepare(
+        'INSERT INTO courses (name, student_id) VALUES (?, ?)'
+    )
+
+    insertCourse.run('高等数学', 1)
+    insertCourse.run('大学英语', 1)
+    insertCourse.run('数据结构', 2)
 }
 
 createTable()

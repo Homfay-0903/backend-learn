@@ -3,8 +3,12 @@ const studentController = require("../controllers/studentController")
 const validate = require("../middlewares/validate")
 const studentSchema = require("../schemas/studentSchema")
 const studentQuerySchema = require("../schemas/studentQuerySchema")
+const courseRoutes = require("./courseRoutes")
 
 const router = express.Router()
+
+// 课程作为学生的子资源，嵌套挂载；mergeParams 让 :id 参数能传进去
+router.use("/:id/courses", courseRoutes)
 
 // 查询学生列表（支持分页 / 过滤 / 排序）
 router.get("/", validate(studentQuerySchema, "query"), studentController.getAllStudents)
