@@ -14,7 +14,8 @@ def get_all_students(query):
 
 
 def get_student_by_id(student_id: int):
-    student = student_service.get_student_by_id(student_id)
+    # 返回学生详情，附带课程列表（与 Express 侧行为一致）
+    student = student_service.get_student_with_courses(student_id)
 
     return {
         "success": True,

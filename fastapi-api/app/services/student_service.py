@@ -34,6 +34,15 @@ def get_student_by_id(student_id: int):
     return student
 
 
+def get_student_with_courses(student_id: int):
+    student = student_model.find_with_courses(student_id)
+
+    if student is None:
+        raise ApiError(404, "学生不存在")
+
+    return student
+
+
 def create_student(data: StudentCreate):
     student_data = data.model_dump()
     return student_model.create(student_data)

@@ -47,6 +47,40 @@ def find_by_id(student_id: int):
     return _row_to_student(row)
 
 
+def find_with_courses(student_id: int) -> dict | None:
+    # LEFT JOIN：即使学生没有课程也要返回学生本身（NULL 填充）；
+    # 如果用 INNER JOIN，没有课程的学生会被整个过滤掉。
+    # 一行学生 × N 门课会膨胀成 N 行，所以自己按 id 聚合成嵌套结构
+    rows = connection.execute(
+        """
+        SELECT s.id AS student_id, s.name, s.age, s.major,
+               c.id AS course_id, c.name AS course_name
+        FROM students s
+        LEFT JOIN courses c ON c.student_id = s.id
+        WHERE s.id = ?
+        ORDER BY c.id
+        """,
+        (student_id,)
+    ).fetchall()
+
+    if not rows:
+        return None
+
+    first = rows[0]
+
+    return {
+        "id": first["student_id"],
+        "name": first["name"],
+        "age": first["age"],
+        "major": first["major"],
+        "courses": [
+            {"id": row["course_id"], "name": row["course_name"]}
+            for row in rows
+            if row["course_id"] is not None
+        ]
+    }
+
+
 def create(data: dict):
     cursor = connection.execute(
         "INSERT INTO students (name, age, major) VALUES (?, ?, ?)",

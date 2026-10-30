@@ -3,12 +3,19 @@ from fastapi import APIRouter, Depends
 from app.controllers import student_controller
 from app.schemas.student_schema import StudentCreate, StudentQuery
 from app.core.security import verify_jwt
+from app.routers.course_router import router as course_router
 
 router = APIRouter(
     prefix="/api/students",
     tags=["Students"],
     # 整个路由模块统一要求 JWT 认证（取代之前的 API Key）
     dependencies=[Depends(verify_jwt)]
+)
+
+# 课程作为学生的子资源，嵌套挂载；父路由的 student_id 参数在子路由里直接可用
+router.include_router(
+    course_router,
+    prefix="/{student_id}/courses"
 )
 
 
